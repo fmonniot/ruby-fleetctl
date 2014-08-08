@@ -7,15 +7,15 @@ module Fleet
     attr_reader :controller, :name, :state, :load, :active, :sub, :desc, :machine
     alias_method :read_attribute_for_serialization, :send
 
-    def initialize(controller, name, state, load, active, sub, desc, machine)
-      @controller = controller
-      @name       = name
-      @state      = state
-      @load       = load
-      @active     = active
-      @sub        = sub
-      @desc       = desc
-      @machine    = machine
+    def initialize(args)
+      @controller = args[:controller]
+      @name       = args[:name]
+      @state      = args[:state]
+      @load       = args[:load]
+      @active     = args[:active]
+      @sub        = args[:sub]
+      @desc       = args[:desc]
+      @machine    = args[:machine]
     end
 
     [:status, :destroy, :stop, :start, :cat, :unload].each do |method_name|
