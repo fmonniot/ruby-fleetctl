@@ -1,6 +1,7 @@
 module Fleet
   class Machine
     attr_reader :cluster, :id, :ip, :metadata
+    alias_method :read_attribute_for_serialization, :send
 
     def initialize(cluster: nil, id: nil, ip: nil, metadata: nil)
       @cluster = cluster

@@ -1,6 +1,7 @@
 module Fleet
   class Cluster < Fleet::ItemSet
     attr_accessor :controller
+    alias_method :read_attribute_for_serialization, :send
 
     def initialize(*args, controller: nil)
       @controller = controller
