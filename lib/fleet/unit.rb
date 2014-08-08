@@ -5,6 +5,7 @@ module Fleet
     # ACTIVE = The high-level unit activation state, i.e. generalization of SUB.
     # SUB    = The low-level unit activation state, values depend on unit type.
     attr_reader :controller, :name, :state, :load, :active, :sub, :desc, :machine
+    alias_method :read_attribute_for_serialization, :send
 
     def initialize(controller, name, state, load, active, sub, desc, machine)
       @controller = controller
