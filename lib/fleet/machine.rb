@@ -3,11 +3,11 @@ module Fleet
     attr_reader :cluster, :id, :ip, :metadata
     alias_method :read_attribute_for_serialization, :send
 
-    def initialize(cluster: nil, id: nil, ip: nil, metadata: nil)
-      @cluster  = cluster
-      @id       = id
-      @ip       = ip
-      @metadata = metadata
+    def initialize(params)
+      @cluster = params[:cluster]
+      @id = params[:id]
+      @ip = params[:ip]
+      @metadata = params[:metadata]
     end
 
     def controller
@@ -21,7 +21,7 @@ module Fleet
     # run the command (string, array of command + args, whatever) and return stdout
     def ssh(*command, port: 22)
       runner = Fleetctl::Runner::SSH.new([*command].flatten.compact.join(' '))
-      runner.run(host: ip, ssh_options: {port: port})
+      runner.run(host: ip, ssh_options: { port: port })
       runner.output
     end
 
