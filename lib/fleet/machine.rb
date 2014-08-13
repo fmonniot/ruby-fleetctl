@@ -1,5 +1,9 @@
+require 'fleetctl/sshable'
+
 module Fleet
   class Machine
+    include Fleetctl::SSHable
+
     attr_reader :cluster, :id, :ip, :metadata
     alias_method :read_attribute_for_serialization, :send
 
@@ -16,13 +20,6 @@ module Fleet
 
     def units
       controller.units.select { |unit| unit.machine.id == id }
-    end
-
-    # run the command (string, array of command + args, whatever) and return stdout
-    def ssh(*command, port: 22)
-      runner = Fleetctl::Runner::SSH.new([*command].flatten.compact.join(' '))
-      runner.run(host: ip, ssh_options: { port: port })
-      runner.output
     end
 
     def ==(other_machine)

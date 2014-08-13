@@ -37,32 +37,8 @@ describe Fleet::Machine do
     expect(subject.units).to eq(units_machines)
   end
 
-  describe '#ssh' do
-    let(:runner) { double('runner').as_null_object }
-
-    before :each do
-      allow(Fleetctl::Runner::SSH).to receive(:new).and_return(runner)
-    end
-
-    it 'should execute the correct ssh command' do
-      expect(Fleetctl::Runner::SSH).to receive(:new).once
-                                       .with('fleetctl cat service')
-
-      subject.ssh %w(fleetctl cat service)
-    end
-
-    it 'should execute the ssh command against the correct host:port' do
-      expect(runner).to receive(:run).with(host: machine_ip,
-                                           ssh_options: { port: 42 })
-
-      subject.ssh %w(fleetctl cat service), port: 42
-    end
-
-    it 'should return the output of the command' do
-      allow(runner).to receive(:output).and_return('ssh result')
-
-      expect(subject.ssh %w(fleetctl cat service)).to eq('ssh result')
-    end
+  it 'define the SSHable module' do
+    expect(Fleet::Machine.included_modules).to include(Fleetctl::SSHable)
   end
 
   specify ':eql? is an alias of :==' do

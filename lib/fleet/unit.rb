@@ -1,5 +1,9 @@
+require 'fleetctl/sshable'
+
 module Fleet
   class Unit
+    include Fleetctl::SSHable
+
     # http://linuxrackers.com/doku.php?id=fedora_systemd_services
     # LOAD   = Reflects whether the unit definition was properly loaded.
     # ACTIVE = The high-level unit activation state, i.e. generalization of SUB.
@@ -39,13 +43,6 @@ module Fleet
 
     def running?
       active == 'active' && sub == 'running'
-    end
-
-    # run the command on host (string, array of command + args, whatever) and return stdout
-    def ssh(*command, port: 22)
-      runner = Fleetctl::Runner::SSH.new([*command].flatten.compact.join(' '))
-      runner.run(host: ip, ssh_options: {port: port})
-      runner.output
     end
 
     # gets the external port corresponding to the internal port specified
