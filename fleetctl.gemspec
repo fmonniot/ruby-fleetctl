@@ -6,11 +6,11 @@ require 'fleetctl/version'
 Gem::Specification.new do |spec|
   spec.name          = 'fleetctl'
   spec.version       = Fleetctl::VERSION
-  spec.authors       = ['Josh Lauer']
-  spec.email         = ['jlauer@cloudspace.com']
+  spec.authors  = ['Josh Lauer', 'François Monniot']
+  spec.email    = %w(jlauer@cloudspace.com francois@monniot.eu)
   spec.summary       = %q{A simple wrapper for fleetctl}
   spec.description   = %q{Allows controlling fleet clusters via a ruby API}
-  spec.homepage      = 'https://github.com/cloudspace/ruby-fleetctl'
+  spec.homepage = 'https://github.com/fmonniot/ruby-fleetctl'
   spec.license       = 'MIT'
 
   spec.files         = `git ls-files -z`.split("\x0")
