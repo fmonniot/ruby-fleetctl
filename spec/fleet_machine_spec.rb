@@ -17,13 +17,6 @@ describe Fleet::Machine do
     expect(subject.metadata).to eq(machine_metadata)
   end
 
-  it 'should return the controller of it\'s cluster' do
-    ctrl = double('controller')
-    allow(cluster).to receive(:controller).and_return(ctrl)
-
-    expect(subject.controller).to eq(ctrl)
-  end
-
   it 'should return an array of it\'s units' do
     units_machines = []
     ctrl = double('controller', units: Array.new(4) {

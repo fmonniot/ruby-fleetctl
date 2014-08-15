@@ -14,12 +14,8 @@ module Fleet
       @metadata = params[:metadata]
     end
 
-    def controller
-      cluster.controller
-    end
-
     def units
-      controller.units.select { |unit| unit.machine.id == id }
+      @cluster.controller.units.select { |unit| unit.machine.id == id }
     end
 
     def ==(other_machine)
