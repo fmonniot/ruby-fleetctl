@@ -14,6 +14,9 @@ describe Fleetctl::Runner::Shell do
   end
 
   it 'execute return the result of the command' do
+    allow_message_expectations_on_nil
+    allow(subject.status).to receive(:termsig)
+    allow(subject.status).to receive(:exitstatus)
     expect(subject).to receive(:`)
                        .with('echo system call')
                        .and_return('output')
