@@ -1,11 +1,8 @@
 module Fleetctl
   class Fetcher
-    attr_reader :machines, :units
 
     def initialize(fleet_host)
       @fleet_host = fleet_host
-      @machines   = Fleet::ItemSet.new
-      @units      = Fleet::ItemSet.new
     end
 
     def fetch(*commands)
@@ -22,7 +19,6 @@ module Fleetctl
       Fleetctl.logger.info 'Fetching machines from host: '+ @fleet_host.inspect
       fetch 'list-machines', '-l' do |output|
         parse_machines(output, cluster)
-        cluster.merge @machines
       end
     end
 
@@ -30,22 +26,15 @@ module Fleetctl
       Fleetctl.logger.info 'Fetching units from host: '+ @fleet_host.inspect
       fetch 'list-units', '-l' do |output|
         parse_units(output, controller)
-        if controller.units_initialized?
-          controller.units.merge @units
-        else
-          controller.units = @units
-        end
       end
     end
-
-    # TODO extract in own class (Parser::Machines and Parser::Units)
 
     def parse_machines(raw_table, cluster)
       machine_hashes = Fleetctl::TableParser.parse(raw_table)
       machine_hashes.map do |machine_attrs|
         machine_attrs[:id]      = machine_attrs.delete(:machine)
         machine_attrs[:cluster] = cluster
-        @machines.add_or_find(Fleet::Machine.new(machine_attrs))
+        cluster.add_or_find(Fleet::Machine.new(machine_attrs))
       end
     end
 
@@ -60,7 +49,8 @@ module Fleetctl
         end
         unit_attrs[:name]       = unit_attrs.delete(:unit)
         unit_attrs[:controller] = controller
-        @units.add_or_find(Fleet::Unit.new(unit_attrs))
+
+        controller.units.add_or_find(Fleet::Unit.new(unit_attrs))
       end
     end
 

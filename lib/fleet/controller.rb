@@ -14,17 +14,14 @@ module Fleet
       cluster.machines
     end
 
-    def units_initialized?
-      @units != nil
-    end
-
-    # returns an array of Fleet::Unit instances
+    # returns an Fleet::ItemSet of Fleet::Unit instances
     def units
-      Fleetctl.logger.info 'Call to Controller#units'
-      return @units.to_a if @units
+      return @units if @units
       machines
+
+      @units = Fleet::ItemSet.new
       fetcher.fetch_units self
-      @units.to_a
+      @units
     end
 
     # refreshes local state to match the fleet cluster
@@ -44,7 +41,7 @@ module Fleet
       # accepts one or more File objects, or an array of File objects
       define_method(method_name) do |*unit_file_or_files|
         unitfiles = unit_file_or_files.flatten
-        out = unitfile_operation(method_name, unitfiles)
+        out       = unitfile_operation(method_name, unitfiles)
         clear_units
         out
       end

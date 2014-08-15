@@ -71,16 +71,6 @@ describe Fleetctl::Fetcher.new('8.8.8.8') do
 
       expect(subject.fetch_machines cluster).to be false
     end
-
-    it 'should merge result into the passed hash' do
-      allow(subject).to receive(:parse_machines) do
-        subject.machines.add_or_find({a: 1})
-      end
-
-      passed_hash = Fleet::ItemSet.new([{b: 2}])
-      subject.fetch_machines passed_hash
-      expect(passed_hash).to include({a: 1}, {b: 2})
-    end
   end
 
   describe '#fetch_units' do
@@ -117,16 +107,6 @@ describe Fleetctl::Fetcher.new('8.8.8.8') do
 
       expect(subject.fetch_units controller).to be false
     end
-
-    it 'should merge result into the passed hash' do
-      allow(subject).to receive(:parse_units) do
-        subject.units.add_or_find({a: 1})
-      end
-
-      controller.units = Fleet::ItemSet.new([{b: 2}])
-      subject.fetch_units controller
-      expect(controller.units).to include({a: 1}, {b: 2})
-    end
   end
 
   describe '#parse_machines' do
@@ -149,23 +129,62 @@ describe Fleetctl::Fetcher.new('8.8.8.8') do
     end
 
     it 'should try to add each machine to the cluster' do
-      expect(subject.machines).to receive(:add_or_find)
-                                  .exactly(machines_parsed.length)
-                                  .times
+      expect(cluster).to receive(:add_or_find)
+                         .exactly(machines_parsed.length).times
 
       subject.parse_machines raw_table, cluster
     end
 
     it 'should make sure that each machine is valid' do
-      expect(subject.machines).to receive(:add_or_find)
+      expect(cluster).to receive(:add_or_find).ordered
                                   .with Fleet::Machine.new(machines_expected[0])
-      expect(subject.machines).to receive(:add_or_find)
+      expect(cluster).to receive(:add_or_find).ordered
                                   .with Fleet::Machine.new(machines_expected[1])
-      expect(subject.machines).to receive(:add_or_find)
+      expect(cluster).to receive(:add_or_find).ordered
                                   .with Fleet::Machine.new(machines_expected[2])
 
       subject.parse_machines raw_table, cluster
     end
+  end
 
+  describe '#parse_units' do
+    let(:controller_units) { double('ctrl.units') }
+    let(:controller) { double('controller', units: controller_units).as_null_object }
+    let(:raw_table) { 'table' }
+
+    let(:units_parsed) { [
+        {unit:  'elasticsearch@.service', dstate: 'inactive', tmachine: nil,
+         state: 'inactive', active: nil, machine: nil},
+        {unit:  'gitlab.service', dstate: 'launched', tmachine: 'd44af62acaf347b4a/10.240.159.164',
+         state: 'launched', active: 'active', machine: 'd44af62acaf347b4a/10.240.159.164'},
+        {unit:  'elasticsearch@2.service', dstate: 'launched', tmachine: '4ce83dd1b1c94d67a/10.240.190.254',
+         state: 'launched', active: 'active', machine: '4ce83dd1b1c94d67a/10.240.190.254'},
+        {unit:  'coreos-web@3.service', dstate: 'launched', tmachine: 'aafdf1ed253844108/10.240.51.254',
+         state: 'launched', active: 'active', machine: 'aafdf1ed253844108/10.240.51.254'},
+        {unit:  'jenkins.service', dstate: 'launched', tmachine: 'aafdf1ed253844108/10.240.51.254',
+         state: 'launched', active: 'active', machine: 'aafdf1ed253844108/10.240.51.254'}
+    ] }
+
+    let(:units_expected) { [
+        {controller: controller, name: 'elasticsearch@.service', state: '', load: nil, active: '', sub: nil, machine: ''},
+        {controller: controller, name: 'gitlab.service', state: 'launched', load: nil, active: 'active', sub: nil, machine: ''},
+        {controller: controller, name: 'elasticsearch@2.service', state: 'launched', load: nil, active: 'active', sub: nil, machine: ''},
+        {controller: controller, name: 'coreos-web@3.service', state: 'launched', load: nil, active: 'active', sub: nil, machine: ''},
+        {controller: controller, name: 'jenkins.service', state: 'launched', load: nil, active: 'active', sub: nil, machine: ''}
+    ] }
+
+    before :each do
+      allow(Fleetctl::TableParser).to receive(:parse)
+                                      .and_return(units_parsed)
+    end
+
+    it 'should try to add each units to the controller' do
+      expect(controller.units).to receive(:add_or_find)
+                                  .exactly(units_parsed.length).times
+
+      subject.parse_units raw_table, controller
+    end
+
+    pending 'should complete those examples'
   end
 end
