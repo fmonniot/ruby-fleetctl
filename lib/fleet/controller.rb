@@ -1,3 +1,5 @@
+require 'fleetctl/fetcher'
+
 module Fleet
   class Controller
     attr_writer :units
@@ -12,18 +14,23 @@ module Fleet
       cluster.machines
     end
 
+    def units_initialized?
+      @units != nil
+    end
+
     # returns an array of Fleet::Unit instances
     def units
+      Fleetctl.logger.info 'Call to Controller#units'
       return @units.to_a if @units
       machines
-      fetch_units
+      fetcher.fetch_units self
       @units.to_a
     end
 
     # refreshes local state to match the fleet cluster
     def sync
       build_fleet
-      fetch_units
+      fetcher.fetch_units self
       true
     end
 
@@ -51,6 +58,11 @@ module Fleet
 
     private
 
+    def fetcher
+      Fleetctl.logger.info 'Call to Fetcher.fetch_units ' + self.inspect
+      @fetcher ||= Fleetctl::Fetcher.new fleet_host
+    end
+
     def build_fleet
       cluster.discover!
     end
@@ -74,29 +86,6 @@ module Fleet
         end
       end
       runner.exit_code == 0
-    end
-
-    def fetch_units(host: fleet_host)
-      Fleetctl.logger.info 'Fetching units from host: '+host.inspect
-      @units = Fleet::ItemSet.new
-      Fleetctl::Command.new('list-units', '-l') do |runner|
-        runner.run(host: host)
-        parse_units(runner.output)
-      end
-      @units.to_a
-    end
-
-    def parse_units(raw_table)
-      unit_hashes = Fleetctl::TableParser.parse(raw_table)
-      unit_hashes.each do |unit_attrs|
-        if unit_attrs[:machine]
-          machine_id, machine_ip = unit_attrs[:machine].split('/')
-          unit_attrs[:machine]   = cluster.add_or_find(Fleet::Machine.new(id: machine_id, ip: machine_ip))
-        end
-        unit_attrs[:name]       = unit_attrs.delete(:unit)
-        unit_attrs[:controller] = self
-        @units.add_or_find(Fleet::Unit.new(unit_attrs))
-      end
     end
   end
 end

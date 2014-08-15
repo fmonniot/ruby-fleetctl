@@ -17,16 +17,25 @@ describe Fleet::Controller do
     subject.units = double('units', to_a: 'units')
 
     expect(subject).to_not receive(:machines)
-    expect(subject).to_not receive(:fetch_units)
+    expect(subject).to_not receive(:fetcher)
 
     expect(subject.units).to eq('units')
   end
 
   it 'should return all units in the cluster and fetch if none' do
     expect(subject).to receive(:machines)
-    expect(subject).to receive(:fetch_units) { subject.units = ['unit'] }
+    expect(subject).to receive_message_chain(:fetcher, :fetch_units) do
+      subject.units = ['unit']
+    end
 
     expect(subject.units).to eq(['unit'])
+  end
+
+  it 'should indicate if it has units' do
+    expect(subject.units_initialized?).to be false
+
+    subject.units = Array.new(3) { |i| double(name: "unit-#{i}") }
+    expect(subject.units_initialized?).to be true
   end
 
   it 'should return units like an array' do
@@ -38,7 +47,7 @@ describe Fleet::Controller do
 
   it 'let us sync the local cluster state' do
     expect(subject).to receive(:build_fleet).once
-    expect(subject).to receive(:fetch_units).once
+    expect(subject).to receive_message_chain(:fetcher, :fetch_units)
 
     expect(subject.sync).to be true
   end

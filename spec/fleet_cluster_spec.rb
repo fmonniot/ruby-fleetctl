@@ -118,99 +118,36 @@ describe Fleet::Cluster do
 
   describe '#build_from' do
     let(:ip_addrs) { Array.new(3) { Support::random_ipv4 } }
+    let(:fetcher) { double('fetcher', fetch_machines: true) }
+    let(:invalid_fetcher) { double('invalid fetcher', fetch_machines: false) }
 
     it 'should stop fetching machine when the first IP is valid' do
-      expect(subject).to receive(:fetch_machines).once.with(ip_addrs[0]).
-                             and_return(true)
-      expect(subject).to_not receive(:fetch_machines).with(ip_addrs[1])
+      expect(Fleetctl::Fetcher).to receive(:new).once
+                                   .with(ip_addrs[0])
+                                   .and_return(fetcher)
+      expect(Fleetctl::Fetcher).to_not receive(:new).with(ip_addrs[1])
 
       expect(subject.build_from ip_addrs).to eq(ip_addrs[0])
     end
 
     it 'should stop fetching machine when the second IP is valid' do
-      expect(subject).to receive(:fetch_machines).once.and_return(false)
-      expect(subject).to receive(:fetch_machines).once.with(ip_addrs[1]).
-                             and_return(true)
-      expect(subject).to_not receive(:fetch_machines).with(ip_addrs[2])
+      expect(Fleetctl::Fetcher).to receive(:new).once
+                                   .with(ip_addrs[0])
+                                   .and_return(invalid_fetcher)
+      expect(Fleetctl::Fetcher).to receive(:new).once
+                                   .with(ip_addrs[1])
+                                   .and_return(fetcher)
+      expect(Fleetctl::Fetcher).to_not receive(:new).with(ip_addrs[2])
 
       expect(subject.build_from ip_addrs).to eq(ip_addrs[1])
     end
 
     it 'should raise and log error if error' do
-      allow(subject).to receive(:fetch_machines).and_raise(RuntimeError)
+      allow(fetcher).to receive(:fetch_machines).and_raise(RuntimeError)
+      allow(Fleetctl::Fetcher).to receive(:new).and_return(fetcher)
 
       expect(Fleetctl.logger).to receive(:error).at_least(3).times
       expect(subject.build_from ip_addrs).to be_nil
     end
   end
-
-  describe '#fetch_machines' do
-    let(:host) { Support::random_ipv4 }
-    let(:runner) { double('runner').as_null_object }
-
-    before :each do
-      allow(Fleetctl::Command).to receive(:new).
-                                      with('list-machines', '-l').
-                                      and_yield(runner)
-    end
-
-    it 'should execute the command on the correct host' do
-      expect(runner).to receive(:run).with(hash_including(host: host)).once
-
-      subject.fetch_machines host
-    end
-
-    it 'should parse the result of the command' do
-      allow(runner).to receive(:output).and_return('output')
-      expect(subject).to receive(:parse_machines).with('output').once
-
-      subject.fetch_machines host
-    end
-
-    it 'should return true if the command was successful' do
-      allow(runner).to receive(:exit_code).and_return(0)
-
-      expect(subject.fetch_machines host).to be true
-    end
-
-    it 'should return false if the command was unsuccessful' do
-      allow(runner).to receive(:exit_code).and_return(42)
-
-      expect(subject.fetch_machines host).to be false
-    end
-  end
-
-  describe '#parse_machines' do
-    let(:raw_table) { 'table' }
-    let(:machines_parsed) { [
-        {machine: '4ce83dd1b1c94d67af00ba264499b6d0', ip: '10.240.190.254', metadata: nil},
-        {machine: 'aafdf1ed253844108ba4f10d75922f2b', ip: '10.240.51.254', metadata: nil},
-        {machine: 'd44af62acaf347b4a1f26eeb0393fca3', ip: '10.240.159.164', metadata: nil}
-    ] }
-    let(:machines_expected) { [
-        {id: '4ce83dd1b1c94d67af00ba264499b6d0', ip: '10.240.190.254', metadata: nil, cluster: subject},
-        {id: 'aafdf1ed253844108ba4f10d75922f2b', ip: '10.240.51.254', metadata: nil, cluster: subject},
-        {id: 'd44af62acaf347b4a1f26eeb0393fca3', ip: '10.240.159.164', metadata: nil, cluster: subject}
-    ] }
-
-    before :each do
-      allow(Fleetctl::TableParser).to receive(:parse).and_return(machines_parsed)
-    end
-
-    it 'should try to add each machine to the cluster' do
-      expect(subject).to receive(:add_or_find).exactly(machines_parsed.length).times
-
-      subject.parse_machines raw_table
-    end
-
-    it 'should make sure that each machine is valid' do
-      expect(subject).to receive(:add_or_find).with Fleet::Machine.new(machines_expected[0])
-      expect(subject).to receive(:add_or_find).with Fleet::Machine.new(machines_expected[1])
-      expect(subject).to receive(:add_or_find).with Fleet::Machine.new(machines_expected[2])
-
-      subject.parse_machines raw_table
-    end
-
-  end
-
 end
